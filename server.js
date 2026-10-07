@@ -12,7 +12,17 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = +process.env.PORT || 8080;
-const BASE_URL = (process.env.BASE_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
+// Public address used in X card tags. BASE_URL wins; otherwise Railway's domain; otherwise the request's own host.
+const FIXED_BASE = (process.env.BASE_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '')).replace(/\/$/, '');
+const BASE_URL = FIXED_BASE || `http://localhost:${PORT}`;
+function baseFor(req) {
+  if (FIXED_BASE) return FIXED_BASE;
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  if (!host) return BASE_URL;
+  const local = /^(localhost|127\.|\[::1\])/.test(host);
+  const proto = (req.headers['x-forwarded-proto'] || '').split(',')[0] || (local ? 'http' : 'https');
+  return `${proto}://${host}`;
+}
 const X_HANDLE = process.env.X_HANDLE || '';           // e.g. @leopardracer, shown as card attribution
 const BOT_FILL = +(process.env.BOT_FILL ?? 4);           // keep at least this many players in a match using bots
 const MAX_SPECTATORS = +process.env.MAX_SPECTATORS || 150;
@@ -43,7 +53,7 @@ function send(res, code, body, type = 'text/plain; charset=utf-8', extra = {}) {
   res.end(body);
 }
 
-function worldPage(id) {
+function worldPage(id, BASE_URL) {
   const room = rooms.get(id);
   const title = `Join world "${id}" · Postfire`;
   const desc = 'A 5v5 shooter that runs inside this post. Everyone who opens it fights in the same arena.';
@@ -69,7 +79,7 @@ const server = http.createServer((req, res) => {
   const p = decodeURIComponent(u.pathname);
   if (p === '/api/new') {
     let id; do { id = crypto.randomBytes(4).toString('base64url').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6); } while (!validId(id) || rooms.has(id));
-    return send(res, 200, JSON.stringify({ id, url: `${BASE_URL}/w/${id}` }), MIME['.json']);
+    return send(res, 200, JSON.stringify({ id, url: `${baseFor(req)}/w/${id}` }), MIME['.json']);
   }
   if (p.startsWith('/api/world/')) {
     const id = p.slice(11); const r = rooms.get(id);
@@ -78,7 +88,7 @@ const server = http.createServer((req, res) => {
   if (p.startsWith('/w/')) {
     const id = p.slice(3).toLowerCase();
     if (!validId(id)) return send(res, 404, 'Unknown world');
-    return send(res, 200, worldPage(id), MIME['.html']);
+    return send(res, 200, worldPage(id, baseFor(req)), MIME['.html']);
   }
   let file = STATIC[p] || (p.startsWith('/vendor/addons/') ? path.join(__dirname, 'node_modules/three/examples/jsm', p.slice(15))
     : path.join(__dirname, 'public', p === '/' ? 'index.html' : p));
