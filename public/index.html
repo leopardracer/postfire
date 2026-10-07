@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Postfire · a 5v5 shooter inside a post</title>
+  <meta name="description" content="Make a world, post the link. Everyone who opens your post fights in the same 5v5 arena.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Postfire">
+  <meta name="twitter:description" content="Make a world, post the link. Everyone who opens your post fights in the same 5v5 arena.">
+  <meta name="twitter:image" content="/card.jpg">
+  <meta property="og:image" content="/card.jpg">
+  <link rel="icon" href="/favicon.svg">
+  <style>
+    :root { --b: #ff8a3d; --a: #3fd0ff; --dim: #9aa3ad; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px;
+      background: radial-gradient(1000px 520px at 50% 0%, #1b2430, #07090c 70%); color: #f2f4f7;
+      font: 500 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    main { width: min(560px, 100%); text-align: center; }
+    h1 { margin: 0; font: 900 clamp(52px, 13vw, 96px)/.85 system-ui, sans-serif; letter-spacing: -.05em; }
+    h1 b { color: var(--b); }
+    .sub { color: var(--dim); font-size: 18px; margin: 16px auto 28px; max-width: 420px; }
+    button, .btn { display: inline-block; padding: 16px 26px; border-radius: 14px; border: 0; background: var(--b); color: #160b02;
+      font: 800 17px system-ui, sans-serif; cursor: pointer; text-decoration: none; }
+    .ghost { background: #ffffff12; color: #f2f4f7; }
+    #out { display: none; margin-top: 22px; padding: 16px; border-radius: 16px; background: #ffffff0a; border: 1px solid #ffffff18; }
+    #link { display: flex; gap: 8px; margin: 10px 0 14px; }
+    #link input { flex: 1; min-width: 0; padding: 12px; border-radius: 10px; border: 1px solid #ffffff22; background: #0f1319; color: #fff; font: 600 14px ui-monospace, Menlo, monospace; }
+    .row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    ul { list-style: none; padding: 0; margin: 34px 0 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: left; }
+    li { padding: 12px; border-radius: 12px; background: #ffffff08; font-size: 13px; color: var(--dim); }
+    li b { display: block; color: #f2f4f7; font-size: 14px; margin-bottom: 2px; }
+    @media (max-width: 520px) { ul { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>POST<b>FIRE</b></h1>
+  <p class="sub">A 5v5 shooter that lives inside a post. Make a world, post the link, and everyone who opens it fights in the same arena.</p>
+  <button id="make">Create a world</button>
+  <div id="out">
+    <div style="color:var(--dim);font-size:14px">Your world is ready. Post this link on X:</div>
+    <div id="link"><input id="url" readonly><button class="ghost" id="copy" style="padding:12px 16px;font-size:14px">Copy</button></div>
+    <div class="row"><a class="btn" id="post" target="_blank" rel="noopener">Post on X</a><a class="btn ghost" id="play" target="_blank" rel="noopener">Play now</a></div>
+  </div>
+  <ul>
+    <li><b>10 in the match</b>5v5, first to 7 rounds. Everyone else waits in line and spectates.</li>
+    <li><b>Winners stay on</b>When a match ends, the losing side rotates out for the queue.</li>
+    <li><b>Never empty</b>Bots fill the arena until real players arrive, then step aside.</li>
+  </ul>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  $('make').onclick = async () => {
+    $('make').disabled = true;
+    const { url } = await (await fetch('/api/new')).json();
+    $('url').value = url; $('play').href = url;
+    $('post').href = 'https://x.com/intent/post?text=' + encodeURIComponent('I put a 5v5 shooter inside this post. Everyone who opens it plays in the same match 💀\n\n' + url);
+    $('out').style.display = 'block'; $('make').style.display = 'none';
+  };
+  $('copy').onclick = () => { navigator.clipboard?.writeText($('url').value); $('copy').textContent = 'Copied'; };
+</script>
+</body>
+</html>
